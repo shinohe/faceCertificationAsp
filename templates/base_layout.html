@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width , initial-scale=1.0, minimum-scale=1.0 , maximum-scale=1.0">
+
+		{% if title %}
+			<title>{{ title }}</title>
+		{% else %}
+			<title>FaceCertification</title>
+		{% endif %}
+		<!-- Bootstrap -->
+		<style>
+			html {
+				overflow: scroll;
+				-webkit-overflow-scrolling: touch;
+				height: 100%;
+			}
+			body {
+				position: absolute;  /* またはfixed */
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				overflow: auto;
+			}
+		</style>
+		
+	</head>
+	<body >
+		{% block content %}{% endblock %}
+		<iframe src="/static/html/faceCertification.html" width="1024" height="768"/>
+		<div class="background" data-position="fixed">
+			&nbsp;
+		<div>
+	</body>
+</html>
