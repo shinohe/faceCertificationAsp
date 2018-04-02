@@ -147,7 +147,11 @@ def checkFace():
 			inputData = request.json.get('input')
 			npData = np.array(inputData)
 			npData.astype("int8")
+			# BGRの画像
 			cv2.imwrite("upload.png", npData)
+			uploadImg = cv2.imread("upload.png")
+			uploadImg = cv2.cvtColor(uploadImg, cv2.COLOR_BGR2RGB)
+			cv2.imwrite("upload.png", uploadImg)
 
 			predict = checkFacePredict(inputData)
 	
