@@ -1,0 +1,215 @@
+{% extends "base_layout.html" %}
+{% block content %}
+		<script type="text/javascript">
+			var successCallBack = function(msg){
+				console.log(msg);
+				if (msg.predict){
+					idx = msg.predict.indexOf(Math.max.apply(null,msg.predict));
+					$(".category").text(msg.categories[idx]);
+				}
+			};
+			var checkFace = function(inputData){
+				$.ajax({
+					type: "POST",
+					url: "/checkFace",
+					contentType: "application/json",
+					data:JSON.stringify(inputData),
+					dataType: "json",
+					success: function(msg){
+						successCallBack(msg);
+					}
+				});
+			};
+			
+			// 何も気にしないで取得するとBGRになるので、送信する際はRGBに変換する
+			var convertRGBwithBGR = function(input){
+				for (let i = 0; i < input.length; i ++) {
+					for (let j = 0; j < input[i].length; j ++){
+						var red = input[i][j][0];
+						var green = input[i][j][1];
+						var brue = input[i][j][2];
+						input[i][j][0] = brue;
+						input[i][j][1] = green;
+						input[i][j][2] = red;
+					}
+				}
+				return input;
+			};
+			
+			var drawCropFaceImage = function(imgContext, faceContext, cropX, cropY, cropWidth, cropHeight){
+				imageDataFaceCrop = imgContext.getImageData(cropX, cropY, cropWidth, cropHeight);
+				faceContext.canvas.width = imageDataFaceCrop.width;
+				faceContext.canvas.height = imageDataFaceCrop.height;
+				faceContext.putImageData(imageDataFaceCrop, 0, 0);
+			};
+			
+			var drawFaceRect = function(imgContext, face){
+				imgContext.lineWidth = 3;
+				imgContext.strokeStyle = 'rgb(192, 80, 77)';
+				imgContext.strokeRect(face.x, face.y, face.width, face.height);
+				imgContext.strokeStyle = 'rgb(255, 255, 255)';
+			};
+			
+			var drawAndConvertTo32Rect = function(imgContext, canvas){
+				// 顔矩形データを切り出して32の幅に加工する
+				imgContext.save();
+				imgContext.scale(32 / canvas.width, 32 / canvas.height);
+				imgContext.clearRect(0, 0, canvas.width, canvas.height);
+				imgContext.drawImage(document.getElementById('face'), 0, 0);
+				const imageDataScaled = imgContext.getImageData(0, 0, imgContext.canvas.width, imgContext.canvas.height);
+				imgContext.restore();
+				
+				return imageDataScaled;
+			};
+			
+			// 顔データを作成してチェックする。
+			var faceDataSend = function(imageDataScaled){
+				// data format 4096(32*32*4)
+				const { data } = imageDataScaled;
+				
+				// input format [32][32][3]
+				this.input = new Array(32);
+				this.inputLine = new Uint8ClampedArray(3072);
+				for (let i = 0; i < this.input.length; i ++) {
+					this.input[i] = new Array(32);
+					for (let j = 0; j < this.input[i].length; j ++){
+						this.input[i][j] = new Array(3).fill(0);
+					}
+				}
+				
+				let count = 0;
+				for (let i = 0, len = data.length; i < len; i ++) {
+					// アルファチャネルは飛ばす
+					if ((i+1)%4 == 0) {
+						continue;
+					}
+//										console.log("["+parseInt(i/128)+"]"+"["+parseInt((i%128)/4)+"]"+"["+i%4+"]");
+					this.input[parseInt(i/128)][parseInt((i%128)/4)][i%4] = data[i];
+					this.inputLine[count]=data[i];
+					count++;
+				}
+				
+				// pythonのOpenCVがまさかのBGRなので、RGBからBGRに変換する(現状不要)
+//				this.input = convertRGBwithBGR(this.input);
+				
+				// 正誤判定
+				checkFace({'input':this.input});
+			};
+			
+			function init() {
+				var utils = new Utils('errorMessage');
+				var openCVLoaded = false;
+
+				var video = document.createElement('video');
+				const canvas = document.getElementById('webcamLive');
+				const context = canvas.getContext('2d');
+				const ctxface = document.getElementById('face').getContext('2d');
+				const ctxScaled = document.getElementById('scaledFace').getContext('2d');
+				
+				var videoCount = 0;
+				
+				utils.loadOpenCv(() => {
+					let faceCascadeFile = 'haarcascade_frontalface_alt.xml';
+					utils.createFileFromUrl(faceCascadeFile, faceCascadeFile, () => {
+						openCVLoaded = true;
+					});
+				});
+
+				navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+				
+				
+				navigator.getUserMedia(
+					{video: true},
+					function(stream){
+						video.src = URL.createObjectURL(stream);
+
+						video.addEventListener('loadedmetadata', function(){
+							canvas.width = video.videoWidth;
+							canvas.height = video.videoHeight;
+
+							(function animation(){
+								context.drawImage(video, 0, 0);
+								if (!openCVLoaded){
+									videoCount++;
+									$(".videoCount").text(videoCount);
+
+									requestAnimationFrame(animation);
+									return;
+								}
+								utils.clearError();
+						
+								var src = cv.imread('webcamLive');
+								var gray = new cv.Mat();
+								cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+								var faces = new cv.RectVector();
+								var faceCascade = new cv.CascadeClassifier();
+								// load pre-trained classifiers
+								faceCascade.load('haarcascade_frontalface_alt.xml');
+								// detect faces
+								let msize = new cv.Size(0, 0);
+								faceCascade.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);
+								for (let i = 0; i < faces.size(); ++i) {
+									let point1 = new cv.Point(faces.get(i).x, faces.get(i).y);
+									let point2 = new cv.Point(faces.get(i).x + faces.get(i).width, faces.get(i).y + faces.get(i).height);
+									cv.rectangle(src, point1, point2, [255, 0, 0, 255]);
+
+									drawCropFaceImage(context, ctxface, faces.get(i).x, faces.get(i).y, faces.get(i).width, faces.get(i).height);
+									var imageDataScaled = drawAndConvertTo32Rect(ctxScaled, ctxface.canvas);
+									drawFaceRect(context, faces.get(i));
+									faceDataSend(imageDataScaled);
+
+								}
+								cv.imshow('face', src);
+								src.delete(); gray.delete(); faceCascade.delete();
+								faces.delete();
+								
+								/*
+								$('#webcamLive').faceDetection({
+									complete: function (faces) {
+										console.log(faces);
+										// 顔を矩形で囲む
+										for (var i = 0; i < faces.length; i++) {
+											drawCropFaceImage(context, ctxface, faces[i].x, faces[i].y, faces[i].width, faces[i].height);
+											var imageDataScaled = drawAndConvertTo32Rect(ctxScaled, ctxface.canvas);
+											drawFaceRect(context, faces[i]);
+											faceDataSend(imageDataScaled);
+										}
+										
+									}
+								});*/
+								
+								videoCount++;
+								$(".videoCount").text(videoCount);
+
+								requestAnimationFrame(animation);
+							})();
+						});
+					},
+					console.log
+				);
+			}
+		</script>
+		
+		<div class="canvaContainer">
+			<canvas id="webcamLive"></canvas>
+			<div class="videoCount" style="display:none;"></div>
+			<div class="category"></div>
+			<div class="buttonArea">
+				<input type="button" id="faceCut" value="切取り"/>
+			</div>
+		</div>
+		<div class="buttonArea">
+			<div id="errorMessage" style="color:rgba(255,0,0,1);font-weight:bold;"></div>
+		</div>
+		<div class="canvaContainer">
+			<canvas id="face" style="display:none;"></canvas>
+		</div>
+		<div class="canvaContainer">
+			切り取った顔一覧
+			<canvas id="scaledFace" style="" width="32" height="32"></canvas>
+			<input type="text" placeholder="ラベル名" size="20" maxLength="20"/>
+			<input type="button" id="allClear" value="クリア"/>
+			<input type="button" id="sendFace" value="学習データとして送信する"/>
+		</div>
+		
+{% endblock %}

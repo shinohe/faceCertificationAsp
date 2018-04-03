@@ -11,6 +11,7 @@ import math
 import json
 import tensorflow as tf
 import ssl
+import re
 
 from dist import dist
 
@@ -133,10 +134,27 @@ def get_pw(username):
 # index にアクセスしたときの処理
 @app.route('/')
 def index():
-	title = u"トップページ"
 	page = 1
 	# index.html をレンダリングする
-	return render_template('index.html', title=title, page=page, isMenu=True)
+	return render_template('index.html', page=page, isMenu=True)
+
+@app.route('/demo')
+def demo():
+	page = 1
+	# demo.html をレンダリングする
+	return render_template('demo.html', page=page, isMenu=True)
+
+@app.route('/demoCertification')
+def demoCertification():
+	page = 1
+	# demoCertification.html をレンダリングする
+	return render_template('demoCertification.html', page=page, isMenu=True)
+
+@app.route('/labelManager')
+def labelManager():
+	page = 1
+	# labelManager.html をレンダリングする
+	return render_template('labelManager.html', page=page, isMenu=True)
 
 @app.route('/checkFace', methods=['POST'])
 def checkFace():
@@ -159,6 +177,40 @@ def checkFace():
 	return jsonify({'predict':predict,'categories':categories})
 
 
+@app.route('/allTrainImage', methods=['POST'])
+def allTrainImage():
+	# すべての学習データ一覧を取得する
+	# データ構造 (今はjpgだけ対応しているので、そのうちほかのも対応する)
+	# image --
+	#        |-label1--
+	#                 |-image1.jpg
+	#                 |-image2.jpg
+	#        |-label2--
+	#                 |-image1.jpg
+	#        |-etc...
+	path = os.path.join(currentDir, 'image')
+	allTrainList = {}
+	dirs = os.listdir(path)
+	for dir in dirs:
+		fileList = os.listdir(os.path.join(path, dir))
+		allTrainList[dir] = fileList
+	
+	return jsonify(allTrainList)
+	
+@app.route('/createLabel', methods=['POST'])
+def createLabel():
+	path = os.path.join(currentDir, 'image')
+	if request.data:
+		content_body_dict = json.loads(request.data)
+		
+		if 'labelName' in content_body_dict:
+			labelName = request.json.get('labelName')
+			labelName = re.sub(r'[\\|/|:|?|.|"|<|>|\|]', '-', labelName)
+			os.makedirs(os.path.join(path,labelName))
+			return allTrainImage()
+	
+	return jsonify({'status':'ERROR','error_message':'不正なリクエストです。'})
+
 @app.route('/haarcascade_frontalface_alt.xml', methods=['GET'])
 def cascadeFile():
 	content = get_file('haarcascade_frontalface_alt.xml')
@@ -170,8 +222,9 @@ def error_handler(error):
 	return response, error.status_code
 
 context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-context.load_cert_chain('server.crt', 'server.key')
+context.load_cert_chain('server.crt', 'server.key', 'kurobuta1')
 
 if __name__ == '__main__':
         app.debug = True  #デバッグモード有効化
-        app.run(host='0.0.0.0', port=5001, ssl_context=context, threaded=True) # どこからでもアクセス可能に
+        app.run(host='0.0.0.0', port=5001, threaded=True) # どこからでもアクセス可能に
+#        app.run(host='0.0.0.0', port=5001, ssl_context=context, threaded=True) # どこからでもアクセス可能に

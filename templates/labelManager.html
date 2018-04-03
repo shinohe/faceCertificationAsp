@@ -1,0 +1,110 @@
+{% extends "base_layout.html" %}
+{% block content %}
+		<style>
+			html{
+				font-size:20px;
+			}
+			ul{
+				list-style:none;
+				background-color:#bbbbbb;
+				margin: 0;
+				padding:0;
+			}
+			li{
+				margin: 0;
+				border:solid 1px #ffffff;
+			}
+			p.labelName{
+				margin:0;
+				padding: 0 0.5em;
+				background-color:#00A3FF;
+				color:#ffffff;
+			}
+			li.fileName{
+				color:#ffffff;
+				padding: 0 0.5em;
+			}
+			span.del {
+				display:inline-block;
+				background-image:url("static/css/css-image/delete.png");
+				background-repeat: no-repeat;
+				background-size:contain;
+				margin-left:0.5em;
+				line-height:16px;
+				width:16px;
+				height:16px;
+			}
+			span.labelImage{
+				display:inline-block;
+				width:32px;
+				height:32px;
+				background-repeat: no-repeat;
+				background-size:contain;
+			}
+		</style>
+		<script type="text/javascript">
+			var successCallBack = function(msg){
+				console.log(msg);
+				if (msg){
+					
+					$(".labelArea").remove();
+					$labelAreaDiv = $("<ul class='labelArea'></ul>");
+					for (var label in msg){
+						$labelList = $("<li class='labelList'></li>");
+						$labelName = $("<p class='labelName'><span>"+label+"</span></p>");
+						$labelList.append($labelName);
+						
+						$fileNameList = $("<ul style='display:none;'></ul>")
+						for (var fileName in msg[label]){
+							$fileName = $("<li class='fileName'>"+msg[label][fileName]+"<span class='del'>&nbsp;</span></li>");
+							$fileThumbnail = $("<span class='labelImage'>&nbsp;</span>");
+							$fileThumbnail.css("background-image","url('image/"+label+"/"+msg[label][fileName]+"')");
+							$fileName.prepend($fileThumbnail);
+							$fileNameList.append($fileName);
+						}
+						$labelList.append($fileNameList);
+						$labelAreaDiv.append($labelList);
+					}
+					$("#faceLabelArea").append($labelAreaDiv);
+					$('ul.labelArea p').on('click',function(){
+						$(this).next("ul").slideToggle();
+					});
+					
+				}
+			};
+			var allTrainImage = function(){
+				$.ajax({
+					type: "POST",
+					url: "/allTrainImage",
+					contentType: "application/json",
+					dataType: "json",
+					success: function(msg){
+						successCallBack(msg);
+					}
+				});
+			};
+			
+
+			
+			function init() {
+				allTrainImage();
+				
+				$("#refresh").click(function(){
+					allTrainImage();
+				});
+			}
+		</script>
+		
+		<h2>顔ラベル管理</h2>
+		<div class="errorArea">
+			<div id="errorMessage" style="color:rgba(255,0,0,1);font-weight:bold;"></div>
+		</div>
+		<h5>顔ラベル一覧</h5>
+		<div id="faceLabelArea" class="faceLabelArea"></div>
+			
+		</div>
+		<div class="buttonArea">
+			<input type="button" id="refresh" value="再読み込み"/>
+		</div>
+		
+{% endblock %}

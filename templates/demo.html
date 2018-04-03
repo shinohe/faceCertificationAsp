@@ -1,0 +1,151 @@
+{% extends "base_layout.html" %}
+{% block content %}
+		<script type="text/javascript">
+			var successCallBack = function(msg){
+				console.log(msg);
+				if (msg.predict){
+					idx = msg.predict.indexOf(Math.max.apply(null,msg.predict));
+					$(".category").text(msg.categories[idx]);
+				}
+			};
+			var checkFace = function(inputData){
+				$.ajax({
+					type: "POST",
+					url: "/checkFace",
+					contentType: "application/json",
+					data:JSON.stringify(inputData),
+					dataType: "json",
+					success: function(msg){
+						successCallBack(msg);
+					}
+				});
+			};
+			
+			// 何も気にしないで取得するとBGRになるので、送信する際はRGBに変換する
+			var convertRGBwithBGR = function(input){
+				for (let i = 0; i < input.length; i ++) {
+					for (let j = 0; j < input[i].length; j ++){
+						var red = input[i][j][0];
+						var green = input[i][j][1];
+						var brue = input[i][j][2];
+						input[i][j][0] = brue;
+						input[i][j][1] = green;
+						input[i][j][2] = red;
+					}
+				}
+				return input;
+			};
+			
+			var drawCropFaceImage = function(imgContext, faceContext, cropX, cropY, cropWidth, cropHeight){
+				imageDataFaceCrop = imgContext.getImageData(cropX, cropY, cropWidth, cropHeight);
+				faceContext.canvas.width = imageDataFaceCrop.width;
+				faceContext.canvas.height = imageDataFaceCrop.height;
+				faceContext.putImageData(imageDataFaceCrop, 0, 0);
+			};
+			
+			var drawFaceRect = function(imgContext, face){
+				imgContext.lineWidth = 3;
+				imgContext.strokeStyle = 'rgb(192, 80, 77)';
+				imgContext.strokeRect(face.x, face.y, face.width, face.height);
+				imgContext.strokeStyle = 'rgb(255, 255, 255)';
+			};
+			
+			var drawAndConvertTo64Rect = function(imgContext, canvas){
+				// 顔矩形データを切り出して64の幅に加工する
+				imgContext.canvas.width = 64;
+				imgContext.canvas.height = 64;
+				imgContext.save();
+				imgContext.scale(64 / canvas.width, 64 / canvas.height);
+				imgContext.clearRect(0, 0, canvas.width, canvas.height);
+				imgContext.drawImage(canvas, 0, 0);
+				const imageDataScaled = imgContext.getImageData(0, 0, imgContext.canvas.width, imgContext.canvas.height);
+				imgContext.restore();
+				
+				return imageDataScaled;
+			};
+			
+			function init() {
+				var utils = new Utils('errorMessage');
+				var openCVLoaded = false;
+				
+				utils.addFileInputHandler('fileInput', 'inputImageDraw');
+
+				const canvas = document.getElementById('inputImageDraw');
+				const context = canvas.getContext('2d');
+				const ctxFaceRect = document.getElementById('faceRect').getContext('2d');
+				const ctxScaled = document.getElementById('scaledFace').getContext('2d');
+				const ctxCropFace = document.getElementById('cropFace').getContext('2d');
+				
+				utils.loadOpenCv(() => {
+					let faceCascadeFile = 'haarcascade_frontalface_alt.xml';
+					utils.createFileFromUrl(faceCascadeFile, faceCascadeFile, () => {
+						openCVLoaded = true;
+					});
+				});
+				
+				$("#faceDetecteButton").click(function(){
+					var src = cv.imread('inputImageDraw');
+					let gray = new cv.Mat();
+					cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+					let faces = new cv.RectVector();
+					let faceCascade = new cv.CascadeClassifier();
+					// load pre-trained classifiers
+					faceCascade.load('haarcascade_frontalface_alt.xml');
+					// detect faces
+					let msize = new cv.Size(0, 0);
+					faceCascade.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);
+					for (let i = 0; i < faces.size(); ++i) {
+						ctxFaceRect.canvas.width = context.canvas.width
+						ctxFaceRect.canvas.height = context.canvas.height
+						ctxFaceRect.drawImage(context.canvas, 0, 0);
+						drawFaceRect(ctxFaceRect, faces.get(i));
+						
+						drawCropFaceImage(context, ctxCropFace, faces.get(i).x, faces.get(i).y, faces.get(i).width, faces.get(i).height);
+						var imageDataScaled = drawAndConvertTo64Rect(ctxScaled, ctxCropFace.canvas);
+					}
+					src.delete(); gray.delete(); faceCascade.delete();
+					faces.delete();
+					
+					var type = 'image/jpeg';
+					var dataurl = ctxScaled.canvas.toDataURL(type);
+					var bin = atob(dataurl.split(',')[1]);
+					var buffer = new Uint8Array(bin.length);
+					for (var i = 0; i < bin.length; i++) {
+					  buffer[i] = bin.charCodeAt(i);
+					}
+					var blob = new Blob([buffer.buffer], {type: type});
+					var url = window.URL.createObjectURL(blob);
+					
+					$("#downloadUrl").attr("href", url);
+					$("#downloadDetectImage").css("display","block");
+					$("#downloadDetectImage").click(function(){
+						$("#downloadUrl")[0].click();
+					});
+				});
+
+			}
+		</script>
+		
+		<h2>openCV.js 顔検出用DEMO</h2>
+		<div class="errorArea">
+			<div id="errorMessage" style="color:rgba(255,0,0,1);font-weight:bold;"></div>
+		</div>
+		<div class="canvaContainer">
+			<canvas id="inputImageDraw"></canvas>
+			<canvas id="faceRect" ></canvas>
+		</div>
+		<div class="fileInputContainer">
+			<input type="file" id="fileInput" name="file" accept="image/*">
+		</div>
+		<h5>切り抜きリサイズ</h5>
+		<div class="canvaContainer">
+			<canvas id="scaledFace"></canvas>
+			<canvas id="cropFace" style="display:none;"></canvas>
+		</div>
+		<div class="buttonArea">
+			<input type="button" id="faceDetecteButton" value="検出"/>
+			<input type="button" id="downloadDetectImage" value="保存" style="display:none;">
+			<a href="" id="downloadUrl" download="crop.jpg" style="display:none;">URL</a>
+		</div>
+		
+{% endblock %}
