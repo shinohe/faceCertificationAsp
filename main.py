@@ -10,6 +10,7 @@ import os
 import math
 import json
 import tensorflow as tf
+import ssl
 
 from dist import dist
 
@@ -168,7 +169,9 @@ def error_handler(error):
 	response = jsonify({ 'message': error.message, 'result': error.status_code })
 	return response, error.status_code
 
-if __name__ == '__main__':
-	app.debug = True  #デバッグモード有効化
-	app.run(host='0.0.0.0', threaded=True) # どこからでもアクセス可能に
+context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+context.load_cert_chain('server.crt', 'server.key')
 
+if __name__ == '__main__':
+        app.debug = True  #デバッグモード有効化
+        app.run(host='0.0.0.0', port=5001, ssl_context=context, threaded=True) # どこからでもアクセス可能に
