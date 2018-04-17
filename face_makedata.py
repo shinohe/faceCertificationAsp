@@ -34,5 +34,5 @@ Y = np.array(Y)
 X_train, X_test, y_train, y_test = \
     cross_validation.train_test_split(X, Y)
 xy = (X_train, X_test, y_train, y_test)
-np.save("./image/face.npy", xy)
+np.save("./data/face.npy", xy)
 print("ok,", len(Y))

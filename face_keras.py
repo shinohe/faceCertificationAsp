@@ -24,7 +24,6 @@ except:
 f.close()
 
 nb_classes = len(categories)
-image_size = 32
 
 def main():
     X_train, X_test, y_train, y_test = np.load("./data/face.npy")

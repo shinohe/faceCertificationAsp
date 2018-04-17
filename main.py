@@ -12,6 +12,8 @@ import json
 import tensorflow as tf
 import ssl
 import re
+import face_makedata
+import threading
 
 from dist import dist
 
@@ -78,6 +80,49 @@ users = {
 def round(x,d=0):
 	p=10**d
 	return (x*p*2+1)//2/p
+	
+
+class TrainingThread(threading.Thread):
+	progress = 0
+	statusDisplay = ""
+	
+	def __init__(self):
+		super(TrainingThread, self).__init__()
+		self.stop_event = threading.Event()
+	
+	def stop(self):
+		self.stop_event.set()
+	
+	def run(self):
+		try:
+			statusDisplay = "ラベルデータの作成中..."
+			logger.info("ラベルデータの作成中...");
+			if os.path.exists(os.path.join("data", "face.npy")):
+				os.remove(os.path.join("data", "face.npy"))
+			face_makedata.createLabelData()
+			
+			progress = 4
+			
+			files = os.listdir("image")
+			# ディレクトリ以外は除外
+			dump_files = []
+			for file_name in files:
+				if os.path.isdir(os.path.join("image",file_name)):
+					dump_files.append(file_name)
+			dump_dict = {"categories":dump_files}
+			
+			f = open('categories.json', 'w')
+			json.dump(dump_dict,f,indent=4)
+			f.close()
+			
+			progress = 5
+			statusDisplay = "ラベルデータの学習中..."
+			logger.info("ラベルデータの学習中...");
+			
+			face.main();
+			
+		finally:
+			logger.info("face training finish!!");
 
 class InvalidUsage(Exception):
 	status_code = 400
@@ -210,6 +255,29 @@ def createLabel():
 			return allTrainImage()
 	
 	return jsonify({'status':'ERROR','error_message':'不正なリクエストです。'})
+	
+@app.route('/deleteImage', methods=['POST'])
+def deleteImage():
+	path = os.path.join(currentDir, 'image')
+	if request.data:
+		content_body_dict = json.loads(request.data)
+		
+		if 'labelName' in content_body_dict:
+			labelName = request.json.get('labelName')
+			path = os.path.join(path, labelName)
+		else :
+			return jsonify({'status':'ERROR','error_message':'不正なリクエストです。'})
+		
+		if 'imageName' in content_body_dict:
+			imageName = request.json.get('imageName')
+			path = os.path.join(path, imageName)
+			os.remove(path)
+			return allTrainImage()
+		else :
+			return jsonify({'status':'ERROR','error_message':'不正なリクエストです。'})
+	
+	return jsonify({'status':'ERROR','error_message':'不正なリクエストです。'})
+
 
 @app.route('/haarcascade_frontalface_alt.xml', methods=['GET'])
 def cascadeFile():

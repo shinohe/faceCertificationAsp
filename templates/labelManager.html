@@ -41,8 +41,33 @@
 				background-repeat: no-repeat;
 				background-size:contain;
 			}
+			div.addNewLabelPopUpView{
+				position:absolute;
+				top:50%;
+				left:50%;
+				width:400px;
+				height:300px;
+			}
 		</style>
 		<script type="text/javascript">
+			var deleteImage = function(labelName, imageName){
+				$.ajax({
+					type: "POST",
+					url: "/deleteImage",
+					contentType: "application/json",
+					data:'{"labelName":"'+labelName+'", "imageName":"'+imageName+'"}',
+					dataType: "json",
+					success: function(msg){
+						successCallBack(msg);
+					}
+				});
+			};
+			
+			var addNewImage = function(){
+				// background操作不能にする。
+				
+				// 追加用ポップアップビューを表示
+			};
 			var successCallBack = function(msg){
 				console.log(msg);
 				if (msg){
@@ -55,13 +80,23 @@
 						$labelList.append($labelName);
 						
 						$fileNameList = $("<ul style='display:none;'></ul>")
-						for (var fileName in msg[label]){
-							$fileName = $("<li class='fileName'>"+msg[label][fileName]+"<span class='del'>&nbsp;</span></li>");
+						for (var fileNameIdx in msg[label]){
+							$closeButton = $("<span class='del'>&nbsp;<input type='hidden' class='label' value='"+label+"'/><input type='hidden' class='fileName' value='"+msg[label][fileNameIdx]+"'/></span>");
+							$closeButton.click(function(){
+								deleteImage($(this).find(".label").val(), $(this).find(".fileName").val());
+							});
+							$fileName = $("<li class='fileName'>"+msg[label][fileNameIdx]+"</li>");
+							$fileName.append($closeButton);
 							$fileThumbnail = $("<span class='labelImage'>&nbsp;</span>");
-							$fileThumbnail.css("background-image","url('image/"+label+"/"+msg[label][fileName]+"')");
+							$fileThumbnail.css("background-image","url('image/"+label+"/"+msg[label][fileNameIdx]+"')");
 							$fileName.prepend($fileThumbnail);
 							$fileNameList.append($fileName);
 						}
+						// ラベル作成用のliを追加
+						$addNewLabel = $("<li class='addLabel'><span>新しいイメージを追加する<span></li>")
+						$addNewLabel.click(function(){
+						});
+						$fileNameList.append();
 						$labelList.append($fileNameList);
 						$labelAreaDiv.append($labelList);
 					}
@@ -106,5 +141,7 @@
 		<div class="buttonArea">
 			<input type="button" id="refresh" value="再読み込み"/>
 		</div>
-		
+		<div class="addNewLabelPopUpView" style="display:none;">
+			<div class="newImageInputArea"><input type="file" class="newImage"/></div>
+		</div>
 {% endblock %}
