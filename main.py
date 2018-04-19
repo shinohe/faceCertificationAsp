@@ -200,6 +200,12 @@ def labelManager():
 	page = 1
 	# labelManager.html をレンダリングする
 	return render_template('labelManager.html', page=page, isMenu=True)
+	
+@app.route('/faceDetection', methods=['GET'])
+def faceDetection():
+	# faceDetection.html をレンダリングする
+	return render_template('faceDetection.html', isMenu=True)
+
 
 @app.route('/checkFace', methods=['POST'])
 def checkFace():
@@ -277,7 +283,6 @@ def deleteImage():
 			return jsonify({'status':'ERROR','error_message':'不正なリクエストです。'})
 	
 	return jsonify({'status':'ERROR','error_message':'不正なリクエストです。'})
-
 
 @app.route('/haarcascade_frontalface_alt.xml', methods=['GET'])
 def cascadeFile():
