@@ -5,7 +5,8 @@
 				console.log(msg);
 				if (msg.predict){
 					idx = msg.predict.indexOf(Math.max.apply(null,msg.predict));
-					$(".category").text(msg.categories[idx]);
+					predict = Math.round(msg.predict[idx]*100,2);
+					$(".category").text(msg.categories[idx]+"一致率:"+predict+"%");
 				}
 			};
 			var checkFace = function(inputData){
