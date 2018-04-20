@@ -23,7 +23,40 @@
 				right: 0;
 				bottom: 0;
 				overflow: auto;
+				margin: 0;
+				padding: 0;
 			}
+			.menu {
+				margin:0px;
+				position: absolute;
+				top:0;
+				width:100%;
+				height: 50px;
+				background-color:#aaccee;
+			}
+			.menu a{
+				padding: 5px;
+				background-color: rgba(44,148,236,1);
+				border-radius: 10px;
+				height: 40px;
+				color: white;
+				margin-top: 5px;
+				line-height:45px;
+				text-decoration: none;
+				filter: drop-shadow(2px 2px 1px rgba(0,0,0,0.9));
+ 			}
+			.menu a:active{
+				line-height:45px;
+				background-color: rgba(32,107,171,1);
+				filter: drop-shadow(0px 0px 0px rgba(0,0,0,0.9));
+			}
+ 			div {
+ 				padding:5px;
+ 			}
+ 			div.content {
+ 				position:absolute;
+ 				top:50px;
+ 			}
 		</style>
 		
 		<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
@@ -32,7 +65,15 @@
 	</head>
 	<body onload="init();">
 		<script src="//adm.shinobi.jp/s/b1810890209d6bf51c26c9490faf9d9e"></script>
-		{% block content %}{% endblock %}
+		<div class="menu" >
+			<a href="/" >TOP(リアルタイム認証)</a>
+			<a href="/faceDetection" >リアルタイム顔検知</a>
+			<a href="/demoCertification" >静止画顔認証</a>
+			<a href="/demo" >静止画顔検知</a>
+		</div>
+		<div class="content" >
+			{% block content %}{% endblock %}
+		</div>
 		<div class="background" data-position="fixed">
 			&nbsp;
 		<div>
