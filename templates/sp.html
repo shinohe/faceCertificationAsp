@@ -98,10 +98,10 @@
 			};
 			
 			function init() {
-				var utils = new Utils('errorMessage');
+//				var utils = new Utils('errorMessage');
 				var openCVLoaded = false;
 
-				var video = document.createElement('video');
+				var video = document.getElementById('video');
 				const canvas = document.getElementById('webcamLive');
 				const context = canvas.getContext('2d');
 				const ctxface = document.getElementById('face').getContext('2d');
@@ -116,81 +116,35 @@
 //					});
 //				});
 
-				navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+				const medias = {audio : false, video : true};
 				
 				
-				navigator.getUserMedia(
-					{video: true},
+				navigator.getUserMedia(medias,
 					function(stream){
 						video.srcObject = stream;
 
-						video.addEventListener('loadedmetadata', function(){
-							canvas.width = video.videoWidth;
-							canvas.height = video.videoHeight;
-
-							(function animation(){
-								context.drawImage(video, 0, 0);
-								if (!openCVLoaded){
-									videoCount++;
-									$(".videoCount").text(videoCount);
-
-									requestAnimationFrame(animation);
-									return;
-								}
-								utils.clearError();
-						
-								var src = cv.imread('webcamLive');
-								var gray = new cv.Mat();
-								cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-								var faces = new cv.RectVector();
-								var faceCascade = new cv.CascadeClassifier();
-								// load pre-trained classifiers
-								faceCascade.load('haarcascade_frontalface_alt.xml');
-								// detect faces
-								let msize = new cv.Size(0, 0);
-								faceCascade.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);
-								for (let i = 0; i < faces.size(); ++i) {
-									let point1 = new cv.Point(faces.get(i).x, faces.get(i).y);
-									let point2 = new cv.Point(faces.get(i).x + faces.get(i).width, faces.get(i).y + faces.get(i).height);
-									cv.rectangle(src, point1, point2, [255, 0, 0, 255]);
-
-									drawCropFaceImage(context, ctxface, faces.get(i).x, faces.get(i).y, faces.get(i).width, faces.get(i).height);
-									var imageDataScaled = drawAndConvertTo32Rect(ctxScaled, ctxface.canvas);
-									drawFaceRect(context, faces.get(i));
-									faceDataSend(imageDataScaled);
-
-								}
-								cv.imshow('face', src);
-								src.delete(); gray.delete(); faceCascade.delete();
-								faces.delete();
-								
-								/*
-								$('#webcamLive').faceDetection({
-									complete: function (faces) {
-										console.log(faces);
-										// 顔を矩形で囲む
-										for (var i = 0; i < faces.length; i++) {
-											drawCropFaceImage(context, ctxface, faces[i].x, faces[i].y, faces[i].width, faces[i].height);
-											var imageDataScaled = drawAndConvertTo32Rect(ctxScaled, ctxface.canvas);
-											drawFaceRect(context, faces[i]);
-											faceDataSend(imageDataScaled);
-										}
-										
-									}
-								});*/
-								
-								videoCount++;
-								$(".videoCount").text(videoCount);
-
-								requestAnimationFrame(animation);
-							})();
-						});
 					},
 					console.log
 				);
+				video.addEventListener("timeupdate", function(){
+						canvas.width = video.videoWidth;
+						canvas.height = video.videoHeight;
+
+						context.drawImage(video, 0, 0);
+						if (!openCVLoaded){
+							videoCount++;
+							$(".videoCount").text(videoCount);
+
+							return;
+						}
+						
+						videoCount++;
+						$(".videoCount").text(videoCount);
+				}, true);
 			}
 		</script>
 		<div class="videoContainer">
+			<video id="video" autoplay playsinline></video>
 			<canvas id="webcamLive"></canvas>
 			<div class="videoCount" style="display:none;"></div>
 			<div class="category"></div>
