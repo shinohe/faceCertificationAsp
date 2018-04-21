@@ -122,7 +122,7 @@
 				navigator.getUserMedia(
 					{video: true},
 					function(stream){
-						video.src = URL.createObjectURL(stream);
+						video.srcObject = stream;
 
 						video.addEventListener('loadedmetadata', function(){
 							canvas.width = video.videoWidth;
@@ -163,21 +163,6 @@
 								cv.imshow('face', src);
 								src.delete(); gray.delete(); faceCascade.delete();
 								faces.delete();
-								
-								/*
-								$('#webcamLive').faceDetection({
-									complete: function (faces) {
-										console.log(faces);
-										// 顔を矩形で囲む
-										for (var i = 0; i < faces.length; i++) {
-											drawCropFaceImage(context, ctxface, faces[i].x, faces[i].y, faces[i].width, faces[i].height);
-											var imageDataScaled = drawAndConvertTo32Rect(ctxScaled, ctxface.canvas);
-											drawFaceRect(context, faces[i]);
-											faceDataSend(imageDataScaled);
-										}
-										
-									}
-								});*/
 								
 								videoCount++;
 								$(".videoCount").text(videoCount);

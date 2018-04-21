@@ -183,6 +183,12 @@ def index():
 	# index.html をレンダリングする
 	return render_template('index.html', page=page, isMenu=True)
 
+@app.route('/sp/')
+def indexSp():
+	page = 1
+	# index.html をレンダリングする
+	return render_template('sp.html', page=page, isMenu=True)
+
 @app.route('/demo')
 def demo():
 	page = 1
