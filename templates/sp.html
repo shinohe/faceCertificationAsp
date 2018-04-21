@@ -98,7 +98,7 @@
 			};
 			
 			function init() {
-//				var utils = new Utils('errorMessage');
+				var utils = new Utils('errorMessage');
 				var openCVLoaded = false;
 
 				var video = document.getElementById('video');
@@ -107,14 +107,15 @@
 				const ctxface = document.getElementById('face').getContext('2d');
 				const ctxScaled = document.getElementById('scaledFace').getContext('2d');
 				
+				
 				var videoCount = 0;
 				
-//				utils.loadOpenCv(() => {
-//					let faceCascadeFile = 'haarcascade_frontalface_alt.xml';
-//					utils.createFileFromUrl(faceCascadeFile, faceCascadeFile, () => {
-//						openCVLoaded = true;
-//					});
-//				});
+				utils.loadOpenCv(() => {
+					let faceCascadeFile = 'haarcascade_frontalface_alt.xml';
+					utils.createFileFromUrl(faceCascadeFile, faceCascadeFile, () => {
+						openCVLoaded = true;
+					});
+				});
 
 				const medias = {audio : false, video : true};
 				
@@ -127,16 +128,52 @@
 					console.log
 				);
 				video.addEventListener("timeupdate", function(){
-						canvas.width = video.videoWidth;
-						canvas.height = video.videoHeight;
+						canvas.width = 350
+						canvas.height = 263;
 
+						// 顔矩形データを切り出して32の幅に加工する
+						context.clearRect(0, 0, canvas.width, canvas.height);
+						const widthScale = (350 / video.videoWidth);
+						const heightScale = (263 / video.videoHeight);
+						console.log("width scale : "+widthScale+ " height scale : "+heightScale);
+						context.scale(widthScale, heightScale);
 						context.drawImage(video, 0, 0);
+//						const imageDataScaled = context.getImageData(0, 0, imgContext.canvas.width, imgContext.canvas.height);
+						context.scale(1,1);
+						
 						if (!openCVLoaded){
 							videoCount++;
 							$(".videoCount").text(videoCount);
 
 							return;
 						}
+						utils.clearError();
+						
+						var src = cv.imread('webcamLive');
+						var gray = new cv.Mat();
+						cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+						var faces = new cv.RectVector();
+						var faceCascade = new cv.CascadeClassifier();
+						// load pre-trained classifiers
+						faceCascade.load('haarcascade_frontalface_alt.xml');
+						// detect faces
+						let msize = new cv.Size(0, 0);
+						faceCascade.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);
+						for (let i = 0; i < faces.size(); ++i) {
+							let point1 = new cv.Point(faces.get(i).x, faces.get(i).y);
+							let point2 = new cv.Point(faces.get(i).x + faces.get(i).width, faces.get(i).y + faces.get(i).height);
+							cv.rectangle(src, point1, point2, [255, 0, 0, 255]);
+
+							drawCropFaceImage(context, ctxface, faces.get(i).x, faces.get(i).y, faces.get(i).width, faces.get(i).height);
+							var imageDataScaled = drawAndConvertTo32Rect(ctxScaled, ctxface.canvas);
+//							drawFaceRect(context, faces.get(i));
+							faceDataSend(imageDataScaled);
+
+						}
+						
+						cv.imshow('face', src);
+						src.delete(); gray.delete(); faceCascade.delete();
+						faces.delete();
 						
 						videoCount++;
 						$(".videoCount").text(videoCount);
@@ -144,7 +181,8 @@
 			}
 		</script>
 		<div class="videoContainer">
-			<video id="video" autoplay playsinline></video>
+			<!-- safariはdom表示させとかないと駄目らしい っていう糞仕様のため -->
+			<video id="video" style="position:fixed;top:-800px;" autoplay playsinline></video>
 			<canvas id="webcamLive"></canvas>
 			<div class="videoCount" style="display:none;"></div>
 			<div class="category"></div>
@@ -153,10 +191,10 @@
 			<div id="errorMessage" style="color:rgba(255,0,0,1);font-weight:bold;"></div>
 		</div>
 		<div class="canvaContainer">
-			<canvas id="face" style="display:none;"></canvas>
+			<canvas id="face" style=""></canvas>
 		</div>
 		<div class="canvaContainer">
-			<canvas id="scaledFace" style="display:none;" width="32" height="32"></canvas>
+			<canvas id="scaledFace" style="" width="32" height="32"></canvas>
 		</div>
 
 {% endblock %}

@@ -295,6 +295,11 @@ def cascadeFile():
 	content = get_file('haarcascade_frontalface_alt.xml')
 	return Response(content, mimetype='auto')
 
+@app.route('/sp/haarcascade_frontalface_alt.xml', methods=['GET'])
+def cascadeSpFile():
+	content = get_file('haarcascade_frontalface_alt.xml')
+	return Response(content, mimetype='auto')
+
 @app.errorhandler(InvalidUsage)
 def error_handler(error):
 	response = jsonify({ 'message': error.message, 'result': error.status_code })
