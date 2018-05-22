@@ -2,13 +2,19 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.utils import np_utils
+import keras.callbacks
 import numpy as np
 import json
+import os
 
-f = open('categories.json', 'r')
-categoriesJsonData = json.load(f)
+currentDir = os.path.dirname(os.path.abspath(__file__))
+log_filepath = os.path.join(currentDir, "./log")
+
 try:
+	f = open('categories.json', 'r')
+	categoriesJsonData = json.load(f)
 	categories = categoriesJsonData["categories"]
+	f.close()
 except:
 	categories = ["boy_0", "boy_1", "boy_2", "boy_3", "boy_4", "boy_5", "boy_6", "boy_7", "boy_8", "boy_9", 
 				"boy_10", "boy_11", "boy_12", "boy_13", "boy_14", "boy_15", "boy_16", "boy_17", "female_0", 
@@ -21,54 +27,55 @@ except:
 				"senior_female_4", "senior_female_5", "senior_female_6", "senior_female_7", "senior_female_8", 
 				"senior_female_9", "senior_female_10", "senior_men_0", "senior_men_1", "senior_men_2", "senior_men_3", 
 				"senior_men_4", "senior_men_5","test"]
-f.close()
 
 nb_classes = len(categories)
 
 def main():
-    X_train, X_test, y_train, y_test = np.load("./data/face.npy")
-    X_train = X_train.astype("float") / 256
-    X_test  = X_test.astype("float")  / 256
-    y_train = np_utils.to_categorical(y_train, nb_classes)
-    y_test  = np_utils.to_categorical(y_test, nb_classes)
-    model = model_train(X_train, y_train)
-    model_eval(model, X_test, y_test)
+	X_train, X_test, y_train, y_test = np.load("./data/face.npy")
+	X_train = X_train.astype("float") / 256
+	X_test  = X_test.astype("float")  / 256
+	y_train = np_utils.to_categorical(y_train, nb_classes)
+	y_test  = np_utils.to_categorical(y_test, nb_classes)
+	model = model_train(X_train, y_train)
+	model_eval(model, X_test, y_test)
 
 def build_model(in_shape):
-    model = Sequential()
-    model.add(Convolution2D(32, 3, 3,
+	model = Sequential()
+	model.add(Convolution2D(32, 3, 3,
 	border_mode='same',
 	input_shape=in_shape))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-    model.add(Convolution2D(64, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(64, 3, 3))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-    model.add(Flatten())
-    model.add(Dense(512))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(nb_classes))
-    model.add(Activation('softmax'))
-    model.compile(loss='binary_crossentropy',
+	model.add(Activation('relu'))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
+	model.add(Dropout(0.25))
+	model.add(Convolution2D(64, 3, 3, border_mode='same'))
+	model.add(Activation('relu'))
+	model.add(Convolution2D(64, 3, 3))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
+	model.add(Dropout(0.25))
+	model.add(Flatten())
+	model.add(Dense(512))
+	model.add(Activation('relu'))
+	model.add(Dropout(0.5))
+	model.add(Dense(nb_classes))
+	model.add(Activation('softmax'))
+	model.compile(loss='binary_crossentropy',
 	optimizer='rmsprop',
 	metrics=['accuracy'])
-    return model
+	return model
 
 def model_train(X, y):
-    model = build_model(X.shape[1:])
-    history = model.fit(X, y, batch_size=32, nb_epoch=300, validation_split=0.1)
-    hdf5_file = "./data/face-model.h5"
-    model.save_weights(hdf5_file)
-    return model
+	model = build_model(X.shape[1:])
+	tb_cb = keras.callbacks.TensorBoard(log_dir=log_filepath, histogram_freq=1)
+	cbks = [tb_cb]
+	history = model.fit(X, y, batch_size=32, nb_epoch=300, verbose=1, callbacks=cbks, validation_split=0.1)
+	hdf5_file = "./data/face-model.h5"
+	model.save_weights(hdf5_file)
+	return model
 
 def model_eval(model, X, y):
-    score = model.evaluate(X, y)
-    print('loss=', score[0])
-    print('accuracy=', score[1])
+	score = model.evaluate(X, y)
+	print('loss=', score[0])
+	print('accuracy=', score[1])
 
 if __name__ == "__main__":
-    main()
+	main()
