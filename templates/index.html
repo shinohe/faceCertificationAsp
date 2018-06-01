@@ -8,6 +8,14 @@
 					predict = Math.round(msg.predict[idx]*100,2);
 					$(".category").text(msg.categories[idx]+"一致率:"+predict+"%");
 				}
+//				$(".category table").remove();
+//				let $table = $("<table></table>");
+//				for (let i=0;i<msg.predict.length;i++) {
+//					let predict = Math.round(msg.predict[i]*100,2);
+//					let $tr = $("<tr><th>"+msg.categories[i]+"</th><td>一致率"+predict+"%</td></tr>");
+//					$table.append($tr);
+//				}
+//				$(".category").append($table);
 			};
 			var checkFace = function(inputData){
 				$.ajax({
@@ -110,7 +118,8 @@
 				var videoCount = 0;
 				
 				utils.loadOpenCv(() => {
-					let faceCascadeFile = 'haarcascade_frontalface_alt.xml';
+//					let faceCascadeFile = 'haarcascade_frontalface_alt.xml';
+					let faceCascadeFile = 'lbpcascade_frontalface.xml';
 					utils.createFileFromUrl(faceCascadeFile, faceCascadeFile, () => {
 						openCVLoaded = true;
 					});
@@ -145,7 +154,8 @@
 								var faces = new cv.RectVector();
 								var faceCascade = new cv.CascadeClassifier();
 								// load pre-trained classifiers
-								faceCascade.load('haarcascade_frontalface_alt.xml');
+//								faceCascade.load('haarcascade_frontalface_alt.xml');
+								faceCascade.load('lbpcascade_frontalface.xml');
 								// detect faces
 								let msize = new cv.Size(0, 0);
 								faceCascade.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);

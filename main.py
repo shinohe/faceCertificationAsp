@@ -211,6 +211,12 @@ def labelManager():
 def faceDetection():
 	# faceDetection.html をレンダリングする
 	return render_template('faceDetection.html', isMenu=True)
+	
+
+@app.route('/faceRegister', methods=['GET'])
+def faceRegister():
+	# faceRegister.html をレンダリングする
+	return render_template('faceRegister.html', isMenu=True)
 
 
 @app.route('/checkFace', methods=['POST'])
@@ -289,6 +295,11 @@ def deleteImage():
 			return jsonify({'status':'ERROR','error_message':'不正なリクエストです。'})
 	
 	return jsonify({'status':'ERROR','error_message':'不正なリクエストです。'})
+
+@app.route('/lbpcascade_frontalface.xml', methods=['GET'])
+def cascadeLbpFile():
+	content = get_file('lbpcascade_frontalface.xml')
+	return Response(content, mimetype='auto')
 
 @app.route('/haarcascade_frontalface_alt.xml', methods=['GET'])
 def cascadeFile():
