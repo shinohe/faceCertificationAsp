@@ -2,6 +2,7 @@ import os
 import glob
 import argparse
 import cv2
+import scipy
 from PIL import Image
 import numpy as np
 from mat_read import get_extract_data
@@ -21,6 +22,8 @@ IMAGE_HEIGHT = 500
 CASCADE_PATH = "haarcascade_frontalface_alt.xml"
 cascade = cv2.CascadeClassifier(CASCADE_PATH)
 color = (255, 255, 255)
+
+IMAGE_SIZE = 64
 
 def detect_face(image):
 
@@ -45,22 +48,22 @@ def pre_resize(before, after, height=IMAGE_HEIGHT, filename="", antialias_enable
 		resize_img = resize_img.resize((x, y))
 
 	resize_img.save(os.path.join(after,filename), 'jpeg', quality=100)
-	logger.debug( "RESIZED: %s[%sx%s] --> %sx%s" % (filename, before_x, before_y, x, y) )
+#	logger.debug( "RESIZED: %s[%sx%s] --> %sx%s" % (filename, before_x, before_y, x, y) )
 
 
 def resize(image):
-	return cv2.resize(image, (64,64))
+	return cv2.resize(image, (IMAGE_SIZE ,IMAGE_SIZE))
 
 def rotate(image, r):
-	h, w, ch = image.shape # 画像の配列サイズ
-	M = cv2.getRotationMatrix2D((w/2, h/2), r, 1) # 画像を中心に回転させるための回転行列
+	h, w, ch = image.shape # size of image array
+	M = cv2.getRotationMatrix2D((w/2, h/2), r, 1) # rotation mat for rotate around image
 	rotated = cv2.warpAffine(image, M, (w, h))
 
 	return rotated
 	
-def create_optimize_image(directoryPath):
+def create_optimize_image(out_trimming = False):
 
-	# matファイル読み込み
+	# mat file read 
 	# wiki
 	mat_name = "wiki"
 	mat_path = "imdbface/{}_crop/{}.mat".format(mat_name, mat_name)
@@ -78,44 +81,78 @@ def create_optimize_image(directoryPath):
 	gender_merge = np.concatenate([extract_gender_imdb, extract_gender_wiki], axis=0)
 	face_score_merge = np.concatenate([extract_face_score_imdb, extract_face_score_wiki], axis=0)
 	full_path_merge = np.concatenate([extract_full_path_imdb, extract_full_path], axis=0)
-
-	image_merge = []
-
-	# 顔切り出し
-	for i in tqdm(range(len(full_path_merge))):
 	
-		# jpgファイル取得
+	
+	# TODO let it be external args 
+	output_path = "imdbface/imdb_wiki_marge.mat"
+
+	out_images = []
+	out_genderes = []
+	out_ages = []
+	color = (255, 255, 255)
+
+	# cut face all train data
+	for i in tqdm(range(len(full_path_merge))):
+#	for i in tqdm(range(50)):
+		face_cnt = 0
+
+		# get jpg file 
 		file_path = full_path_merge[i]
+		filename = os.path.basename(file_path)
+		file_dir = os.path.dirname(file_path)
 		
-		resize_dir = os.path.dirname(file_path) + "/_resize"
-		logger.debug(resize_dir)
-		logger.debug(file_path)
-		logger.debug(os.path.basename(file_path))
-		if not os.path.exists(resize_dir):
-			os.makedirs(resize_dir)
-		pre_resize(file_path, resize_dir, filename=os.path.basename(file_path))
+		image = cv2.imread(file_path)
+		if image is None:
+			continue
+
+		trimming_dir = file_dir + "/_trimming"
+		if out_trimming and not os.path.exists(trimming_dir):
+			os.makedirs(trimming_dir)
+
+		for r in range(-12,13,4):
+			# rotate 
+			image = rotate(image, r)
+			# face detect
+			facerect_list = detect_face(image)
+
+			# detect face size > 0 
+			if len(facerect_list) == 0:
+				continue
+		
+			for rect in facerect_list:
+				# save 
+				croped = image[rect[1]:rect[1]+rect[3],rect[0]:rect[0]+rect[2]]
+				croped_file_path = trimming_dir+"/%s%08d.jpg" % (filename ,face_cnt)
+				if out_trimming:
+					cv2.imwrite(croped_file_path , resize(croped))
+				face_cnt += 1
+				
+				out_images.append(resize(croped));
+				out_genderes.append(gender_merge[i]);
+				out_ages.append(age_merge[i]);
+
+				# revers
+				fliped = np.fliplr(croped)
+				revers_file_path = trimming_dir+"/%s%08d.jpg" % (filename ,face_cnt)
+				if out_trimming:
+					cv2.imwrite(revers_file_path ,resize(fliped))
+				face_cnt += 1
+				
+				out_images.append(resize(fliped));
+				out_genderes.append(gender_merge[i]);
+				out_ages.append(age_merge[i]);
 
 
-
-
-
-
-
-
-#	output = {"image": np.array(out_imgs), "gender": np.array(gender_merge), "age": np.array(age_merge), "img_size": img_size}
-#	scipy.io.savemat(output_path, output)
+	output = {"image": np.array(out_images), "gender": np.array(out_genderes), "age": np.array(out_ages), "img_size": IMAGE_SIZE}
+	scipy.io.savemat(output_path, output)
 
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description='clip face-image from imagefile and do data argumentation.')
-	parser.add_argument('-p', required=True, help='set files path.', metavar='imagefile_path')
-	args = parser.parse_args()
-
-	# wiki
-	wiki_path = os.path.join(args.p, 'wiki_crop')
-	create_optimize_image(wiki_path)
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--out_trimming", action='store_true', help="trimming")
 	
-	# imdb_crop
-#	imdb_crop_path = os.path.join(args.p, 'imdb_crop')
-#	create_optimize_image(imdb_crop_path)
+	args = parser.parse_args()
+	
+	create_optimize_image(args.out_trimming)
+	
 	
