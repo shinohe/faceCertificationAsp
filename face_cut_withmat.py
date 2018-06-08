@@ -18,12 +18,11 @@ logger.setLevel(DEBUG)
 logger.addHandler(handler)
 logger.propagate = False
 
-IMAGE_HEIGHT = 500
 CASCADE_PATH = "haarcascade_frontalface_alt.xml"
 cascade = cv2.CascadeClassifier(CASCADE_PATH)
 color = (255, 255, 255)
 
-IMAGE_SIZE = 64
+IMAGE_SIZE = 32
 
 def detect_face(image):
 
@@ -31,25 +30,6 @@ def detect_face(image):
 	facerect = cascade.detectMultiScale(image_gray, scaleFactor=1.07, minNeighbors=9, minSize=(10, 10))
 
 	return facerect
-
-def pre_resize(before, after, height=IMAGE_HEIGHT, filename="", antialias_enable=True):
-	"""
-	Resize images according to the pre-defined image_heiht regardless of the size of them.
-	"""
-	
-	img = Image.open(before, 'r')
-	before_x, before_y = img.size[0], img.size[1]
-	x = int(round(float(height / float(before_y) * float(before_x))))
-	y = height
-	resize_img = img
-	if antialias_enable:
-		resize_img.thumbnail((x, y), Image.ANTIALIAS)
-	else:
-		resize_img = resize_img.resize((x, y))
-
-	resize_img.save(os.path.join(after,filename), 'jpeg', quality=100)
-#	logger.debug( "RESIZED: %s[%sx%s] --> %sx%s" % (filename, before_x, before_y, x, y) )
-
 
 def resize(image):
 	return cv2.resize(image, (IMAGE_SIZE ,IMAGE_SIZE))
@@ -67,21 +47,33 @@ def create_optimize_image(out_trimming = False):
 	# wiki
 	mat_name = "wiki"
 	mat_path = "imdbface/{}_crop/{}.mat".format(mat_name, mat_name)
-	extract_age_wiki, extract_gender_wiki, extract_face_score_wiki, extract_full_path\
+	extract_age_wiki, extract_gender_wiki, extract_face_score_wiki, extract_full_path, extract_name\
 		=get_extract_data(mat_path, mat_name)
 	
 	# imdb
 	mat_name = "imdb"
 	mat_path = "imdbface/{}_crop/{}.mat".format(mat_name, mat_name)
-	extract_age_imdb, extract_gender_imdb, extract_face_score_imdb, extract_full_path_imdb\
+	extract_age_imdb, extract_gender_imdb, extract_face_score_imdb, extract_full_path_imdb, extract_name_imdb\
 		=get_extract_data(mat_path, mat_name)
+	
+	# negativeData
+	mat_name = "imdb"
+	mat_path = "imdbface/{}_crop/{}.mat".format(mat_name, mat_name)
+	negative_age, negative_gender, negative_face_score, negative_full_path\
+		=get_negative_data(mat_path, mat_name)
 	
 	# wiki&imdb
 	age_merge = np.concatenate([extract_age_imdb, extract_age_wiki], axis=0)
 	gender_merge = np.concatenate([extract_gender_imdb, extract_gender_wiki], axis=0)
 	face_score_merge = np.concatenate([extract_face_score_imdb, extract_face_score_wiki], axis=0)
 	full_path_merge = np.concatenate([extract_full_path_imdb, extract_full_path], axis=0)
+	name_merge = np.concatenate([extract_name_imdb, extract_name], axis=0)
 	
+	# append negative data
+#	age_merge = np.concatenate([age_merge, negative_age], axis=0)
+#	gender_merge = np.concatenate([gender_merge, negative_gender], axis=0)
+#	face_score_merge = np.concatenate([face_score_merge, negative_face_score], axis=0)
+#	full_path_merge = np.concatenate([full_path_merge, negative_full_path], axis=0)
 	
 	# TODO let it be external args 
 	output_path = "imdbface/imdb_wiki_marge.mat"
@@ -89,11 +81,12 @@ def create_optimize_image(out_trimming = False):
 	out_images = []
 	out_genderes = []
 	out_ages = []
+	out_names = []
 	color = (255, 255, 255)
 
 	# cut face all train data
-	for i in tqdm(range(len(full_path_merge))):
-#	for i in tqdm(range(50)):
+#	for i in tqdm(range(len(full_path_merge))):
+	for i in tqdm(range(1000)):
 		face_cnt = 0
 
 		# get jpg file 
@@ -130,6 +123,7 @@ def create_optimize_image(out_trimming = False):
 				out_images.append(resize(croped));
 				out_genderes.append(gender_merge[i]);
 				out_ages.append(age_merge[i]);
+				out_names.append(name_merge[i]);
 
 				# revers
 				fliped = np.fliplr(croped)
@@ -141,9 +135,10 @@ def create_optimize_image(out_trimming = False):
 				out_images.append(resize(fliped));
 				out_genderes.append(gender_merge[i]);
 				out_ages.append(age_merge[i]);
+				out_names.append(name_merge[i]);
 
 
-	output = {"image": np.array(out_images), "gender": np.array(out_genderes), "age": np.array(out_ages), "img_size": IMAGE_SIZE}
+	output = {"image": np.array(out_images), "gender": np.array(out_genderes), "age": np.array(out_ages), "name":np.array(out_names), "img_size": IMAGE_SIZE}
 	scipy.io.savemat(output_path, output)
 
 

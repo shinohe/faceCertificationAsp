@@ -36,6 +36,7 @@ def get_extract_data(mat_path, mat_name):
 	extract_gender = []
 	extract_face_score = []
 	extract_full_path = []
+	extract_name = []
 	
 	for i in tqdm(range(len(face_score))):
 		# face_score >= 1
@@ -58,8 +59,9 @@ def get_extract_data(mat_path, mat_name):
 		extract_gender.append(gender[i])
 		extract_face_score.append(face_score[i])
 		extract_full_path.append(full_path[i])
+		extract_name.append("face")
 
-	return extract_age, extract_gender, extract_face_score, extract_full_path
+	return extract_age, extract_gender, extract_face_score, extract_full_path, extract_name
 
 # extract effective data & limit
 def extract_age_data(age, gender, face_score, full_path, age_limit_count=1000):
@@ -81,4 +83,10 @@ def extract_age_data(age, gender, face_score, full_path, age_limit_count=1000):
 		extract_face_score.append(face_score[i])
 		extract_full_path.append(full_path[i])
 		
-	return extract_age, extract_gender, extract_face_score, extract_full_path
+	return extract_age, extract_gender, extract_face_score, extract_full_path, extract_name
+	
+	
+def load_mat(path):
+	imdb_wiki_marge = loadmat("imdbface/imdb_wiki_marge.mat")
+	
+	return imdb_wiki_marge["image"][0], imdb_wiki_marge["gender"][0], imdb_wiki_marge["age"][0], imdb_wiki_marge["img_size"][0]
