@@ -3,7 +3,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.utils import np_utils
-from mat_read import load_mat
+from mat_read import loadMatImdbWiki
 import keras.callbacks
 import numpy as np
 import json
@@ -19,22 +19,26 @@ logger.propagate = False
 
 
 currentDir = os.path.dirname(os.path.abspath(__file__))
-log_filepath = os.path.join(currentDir, "./log")
+log_filepath = os.path.join(currentDir, "./log/face-gender/")
+train_data_file_path = "./data/face-gender.npy"
+model_data_file_path = "./data/face-gender-model.h5"
 
-images, gender, age, image_size = load_mat("imdbface/imdb_wiki_marge.mat")
+images, gender, age, image_size, name = loadMatImdbWiki("imdbface/imdb_wiki_marge.mat")
 categorical_size = len(gender)
 
 def main():
 	# train data read. if there is not 
-	if not os.path.exists("./data/face.npy"):
+	if not os.path.exists(train_data_file_path):
 		X = images
 		Y = np.array(range(len(gender)))
+		logger.debug(len(X))
+		logger.debug(len(Y))
 		X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, Y)
 		xy = (X_train, X_test, y_train, y_test)
-		np.save("./data/face.npy", xy)
+		np.save(train_data_file_path, xy)
 		logger.debug("save data-size : %d" % len(Y))
 	else:
-		X_train, X_test, y_train, y_test = np.load("./data/face.npy")
+		X_train, X_test, y_train, y_test = np.load(train_data_file_path)
 	
 	X_train = X_train.astype("float") / 256
 	X_test  = X_test.astype("float")  / 256
@@ -69,11 +73,12 @@ def build_model(in_shape):
 
 def model_train(X, y):
 	model = build_model(X.shape[1:])
+	if  not os.path.exists(log_filepath):
+		os.makedirs(log_filepath)
 	tb_cb = keras.callbacks.TensorBoard(log_dir=log_filepath, histogram_freq=1)
 	cbks = [tb_cb]
-	history = model.fit(X, y, batch_size=32, nb_epoch=150, verbose=1, callbacks=cbks, validation_split=0.1)
-	hdf5_file = "./data/face-model.h5"
-	model.save_weights(hdf5_file)
+	history = model.fit(X, y, batch_size=32, nb_epoch=300, verbose=1, callbacks=cbks, validation_split=0.1)
+	model.save_weights(model_data_file_path)
 	return model
 
 def model_eval(model, X, y):

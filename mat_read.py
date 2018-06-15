@@ -4,7 +4,7 @@ from scipy.io import loadmat
 from tqdm import tqdm
 from datetime import datetime
 
-def calc_age(taken, dob):
+def calcAge(taken, dob):
 	birth = datetime.fromordinal(max(int(dob) - 366, 1))
 
 	if birth.month < 7:
@@ -12,7 +12,7 @@ def calc_age(taken, dob):
 	else:
 		return taken - birth.year - 1
 
-def get_meta(mat_path, mat_name):
+def getMeta(mat_path, mat_name):
 	meta = loadmat(mat_path)
 	mat_dir = os.path.dirname(mat_path)
 	full_path = []
@@ -23,14 +23,14 @@ def get_meta(mat_path, mat_name):
 	photo_taken = meta[mat_name][0, 0]["photo_taken"][0]  # year
 	face_score = meta[mat_name][0, 0]["face_score"][0]
 	second_face_score = meta[mat_name][0, 0]["second_face_score"][0]
-	age = [calc_age(photo_taken[i], dob[i]) for i in range(len(dob))]
+	age = [calcAge(photo_taken[i], dob[i]) for i in range(len(dob))]
 
 	return full_path, dob, gender, photo_taken, face_score, second_face_score, age
 
 # extract effective data 
-def get_extract_data(mat_path, mat_name):
+def getExtractData(mat_path, mat_name):
 	full_path, dob, gender, photo_taken, face_score, second_face_score, age\
-		= get_meta(mat_path, mat_name)
+		= getMeta(mat_path, mat_name)
 	
 	extract_age = []
 	extract_gender = []
@@ -64,7 +64,7 @@ def get_extract_data(mat_path, mat_name):
 	return extract_age, extract_gender, extract_face_score, extract_full_path, extract_name
 
 # extract effective data & limit
-def extract_age_data(age, gender, face_score, full_path, age_limit_count=1000):
+def extractAgeData(age, gender, face_score, full_path, age_limit_count=1000):
 	extract_age = []
 	extract_gender = []
 	extract_face_score = []
@@ -86,7 +86,7 @@ def extract_age_data(age, gender, face_score, full_path, age_limit_count=1000):
 	return extract_age, extract_gender, extract_face_score, extract_full_path, extract_name
 	
 	
-def load_mat(path):
+def loadMatImdbWiki(path):
 	imdb_wiki_marge = loadmat("imdbface/imdb_wiki_marge.mat")
 	
-	return imdb_wiki_marge["image"][0], imdb_wiki_marge["gender"][0], imdb_wiki_marge["age"][0], imdb_wiki_marge["img_size"][0]
+	return imdb_wiki_marge["image"], imdb_wiki_marge["gender"][0], imdb_wiki_marge["age"][0], imdb_wiki_marge["img_size"][0], imdb_wiki_marge["name"][0]

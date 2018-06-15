@@ -5,8 +5,9 @@ import cv2
 import scipy
 from PIL import Image
 import numpy as np
-from mat_read import get_extract_data
-from mat_read import extract_age_data
+from mat_read import getExtractData
+from mat_read import extractAgeData
+from cifar_read import getAllCifarTrainData
 from tqdm import tqdm
 
 from logging import getLogger, StreamHandler, DEBUG
@@ -24,7 +25,7 @@ color = (255, 255, 255)
 
 IMAGE_SIZE = 32
 
-def detect_face(image):
+def detectFace(image):
 
 	image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 	facerect = cascade.detectMultiScale(image_gray, scaleFactor=1.07, minNeighbors=9, minSize=(10, 10))
@@ -41,26 +42,22 @@ def rotate(image, r):
 
 	return rotated
 	
-def create_optimize_image(out_trimming = False):
+def createOptimizeImage(out_trimming = False):
 
 	# mat file read 
 	# wiki
+	logger.debug("read wiki mat")
 	mat_name = "wiki"
 	mat_path = "imdbface/{}_crop/{}.mat".format(mat_name, mat_name)
 	extract_age_wiki, extract_gender_wiki, extract_face_score_wiki, extract_full_path, extract_name\
-		=get_extract_data(mat_path, mat_name)
+		=getExtractData(mat_path, mat_name)
 	
 	# imdb
+	logger.debug("read imdb mat")
 	mat_name = "imdb"
 	mat_path = "imdbface/{}_crop/{}.mat".format(mat_name, mat_name)
 	extract_age_imdb, extract_gender_imdb, extract_face_score_imdb, extract_full_path_imdb, extract_name_imdb\
-		=get_extract_data(mat_path, mat_name)
-	
-	# negativeData
-	mat_name = "imdb"
-	mat_path = "imdbface/{}_crop/{}.mat".format(mat_name, mat_name)
-	negative_age, negative_gender, negative_face_score, negative_full_path\
-		=get_negative_data(mat_path, mat_name)
+		=getExtractData(mat_path, mat_name)
 	
 	# wiki&imdb
 	age_merge = np.concatenate([extract_age_imdb, extract_age_wiki], axis=0)
@@ -69,13 +66,7 @@ def create_optimize_image(out_trimming = False):
 	full_path_merge = np.concatenate([extract_full_path_imdb, extract_full_path], axis=0)
 	name_merge = np.concatenate([extract_name_imdb, extract_name], axis=0)
 	
-	# append negative data
-#	age_merge = np.concatenate([age_merge, negative_age], axis=0)
-#	gender_merge = np.concatenate([gender_merge, negative_gender], axis=0)
-#	face_score_merge = np.concatenate([face_score_merge, negative_face_score], axis=0)
-#	full_path_merge = np.concatenate([full_path_merge, negative_full_path], axis=0)
-	
-	# TODO let it be external args 
+	# TODO change external args 
 	output_path = "imdbface/imdb_wiki_marge.mat"
 
 	out_images = []
@@ -85,6 +76,7 @@ def create_optimize_image(out_trimming = False):
 	color = (255, 255, 255)
 
 	# cut face all train data
+	logger.debug("create positive data")
 #	for i in tqdm(range(len(full_path_merge))):
 	for i in tqdm(range(1000)):
 		face_cnt = 0
@@ -106,7 +98,7 @@ def create_optimize_image(out_trimming = False):
 			# rotate 
 			image = rotate(image, r)
 			# face detect
-			facerect_list = detect_face(image)
+			facerect_list = detectFace(image)
 
 			# detect face size > 0 
 			if len(facerect_list) == 0:
@@ -137,6 +129,19 @@ def create_optimize_image(out_trimming = False):
 				out_ages.append(age_merge[i]);
 				out_names.append(name_merge[i]);
 
+	# append negative sample
+	logger.debug("create negative data")
+	negative_images, negative_names = getAllCifarTrainData()
+#	for i in tqdm(range(len(negative_images))):
+	for i in tqdm(range(1000)):
+		out_images.append(negative_images[i]);
+		out_genderes.append(-1);
+		out_ages.append(-1);
+		out_names.append(negative_names[i]);
+		cifar_file_path = "./cifar-100-python/trimming"+"/%s.jpg" % (negative_names[i])
+		if out_trimming:
+			cv2.imwrite(cifar_file_path ,negative_images[i])
+	
 
 	output = {"image": np.array(out_images), "gender": np.array(out_genderes), "age": np.array(out_ages), "name":np.array(out_names), "img_size": IMAGE_SIZE}
 	scipy.io.savemat(output_path, output)
@@ -148,6 +153,6 @@ if __name__ == "__main__":
 	
 	args = parser.parse_args()
 	
-	create_optimize_image(args.out_trimming)
+	createOptimizeImage(args.out_trimming)
 	
 	
