@@ -77,8 +77,8 @@ def createOptimizeImage(out_trimming = False):
 
 	# cut face all train data
 	logger.debug("create positive data")
-#	for i in tqdm(range(len(full_path_merge))):
-	for i in tqdm(range(1000)):
+	for i in tqdm(range(len(full_path_merge))):
+#	for i in tqdm(range(1000)):
 		face_cnt = 0
 
 		# get jpg file 
@@ -132,8 +132,8 @@ def createOptimizeImage(out_trimming = False):
 	# append negative sample
 	logger.debug("create negative data")
 	negative_images, negative_names = getAllCifarTrainData()
-#	for i in tqdm(range(len(negative_images))):
-	for i in tqdm(range(1000)):
+	for i in tqdm(range(len(negative_images))):
+#	for i in tqdm(range(1000)):
 		out_images.append(negative_images[i]);
 		out_genderes.append(-1);
 		out_ages.append(-1);
