@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from sklearn import cross_validation
 from keras.preprocessing.image import load_img, img_to_array
 import os, glob
