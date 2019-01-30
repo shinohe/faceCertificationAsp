@@ -33,6 +33,7 @@
 				var openCVLoaded = false;
 
 				var video = document.createElement('video');
+				video.setAttribute('autoPlay','true');
 				const canvas = document.getElementById('webcamLive');
 				const context = canvas.getContext('2d');
 				const ctxface = document.getElementById('face').getContext('2d');
