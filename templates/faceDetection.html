@@ -105,19 +105,27 @@
 				);
 			}
 		</script>
-		<div class="canvaContainer">
-			<canvas id="webcamLive"></canvas>
-			<div class="videoCount" style="display:none;"></div>
-			<div class="category"></div>
+		<div class="row">
+			<div class="col-sm">
+				<canvas id="webcamLive"></canvas>
+				<div class="videoCount" style="display:none;"></div>
+				<div class="category"></div>
+			</div>
 		</div>
-		<div class="buttonArea">
-			<div id="errorMessage" style="color:rgba(255,0,0,1);font-weight:bold;"></div>
+		<div class="row">
+			<div class="col-sm">
+				<div id="errorMessage" style="color:rgba(255,0,0,1);font-weight:bold;"></div>
+			</div>
 		</div>
-		<div class="canvaContainer">
-			<canvas id="face" style="display:none;"></canvas>
+		<div class="row">
+			<div class="col-sm">
+				<canvas id="face" style="display:none;"></canvas>
+			</div>
 		</div>
-		<div class="canvaContainer">
-			<canvas id="scaledFace" style="display:none;" width="32" height="32"></canvas>
+		<div class="row">
+			<div class="col-sm">
+				<canvas id="scaledFace" style="display:none;" width="32" height="32"></canvas>
+			</div>
 		</div>
 
 {% endblock %}
